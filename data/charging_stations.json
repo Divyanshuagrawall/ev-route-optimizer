@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Tata Power EV - Jaipur Railway Station",
+    "lat": 26.9124,
+    "lon": 75.7873,
+    "charger_type": "DC Fast",
+    "rate_kw": 50
+  },
+  {
+    "name": "Tata Power EV - World Trade Park",
+    "lat": 26.9010,
+    "lon": 75.8090,
+    "charger_type": "DC Fast",
+    "rate_kw": 50
+  },
+  {
+    "name": "RSRTC Charging Station - Sindhi Camp",
+    "lat": 26.9196,
+    "lon": 75.7994,
+    "charger_type": "DC Fast",
+    "rate_kw": 60
+  },
+  {
+    "name": "Tata Power EV - Pink Square Mall",
+    "lat": 26.9065,
+    "lon": 75.8201,
+    "charger_type": "DC Fast",
+    "rate_kw": 50
+  },
+  {
+    "name": "Charge Zone - Ajmer Road",
+    "lat": 26.9221,
+    "lon": 75.7442,
+    "charger_type": "DC Fast",
+    "rate_kw": 60
+  }
+]

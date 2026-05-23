@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EV Route Optimizer — Jaipur</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 320px;
+      min-width: 320px;
+      background: #1a1d27;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+    }
+
+    #sidebar h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.4;
+    }
+
+    #sidebar h1 span {
+      color: #4ade80;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: -10px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #2d3148;
+    }
+
+    label {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 4px;
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    select, input[type=range] {
+      width: 100%;
+      background: #252836;
+      border: 1px solid #3d4166;
+      border-radius: 8px;
+      color: #e0e0e0;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select:focus {
+      border-color: #4ade80;
+    }
+
+    .soc-display {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .soc-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #4ade80;
+    }
+
+    input[type=range] {
+      padding: 4px 0;
+      border: none;
+      background: transparent;
+      accent-color: #4ade80;
+    }
+
+    .soc-bar {
+      height: 6px;
+      background: #2d3148;
+      border-radius: 3px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .soc-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ef4444, #facc15, #4ade80);
+      border-radius: 3px;
+      transition: width 0.2s;
+    }
+
+    #find-btn {
+      background: linear-gradient(135deg, #4ade80, #22c55e);
+      color: #0f1117;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 4px;
+    }
+
+    #find-btn:hover  { opacity: 0.9; transform: translateY(-1px); }
+    #find-btn:active { transform: translateY(0); }
+    #find-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Result Card ── */
+    #result-card {
+      background: #252836;
+      border-radius: 10px;
+      padding: 16px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .result-type {
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: inline-block;
+      width: fit-content;
+    }
+
+    .type-direct   { background: #1e3a5f; color: #60a5fa; }
+    .type-charging { background: #3b1f1f; color: #f87171; }
+    .type-rerouted { background: #2d1f4a; color: #c084fc; }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .stat-row span:last-child {
+      color: #e0e0e0;
+      font-weight: 600;
+    }
+
+    .charging-stop {
+      background: #1a1d27;
+      border-left: 3px solid #f59e0b;
+      padding: 10px 12px;
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+    }
+
+    .charging-stop b { color: #f59e0b; }
+
+    /* ── Error ── */
+    #error-box {
+      background: #3b1f1f;
+      border: 1px solid #7f1d1d;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+      color: #fca5a5;
+      display: none;
+    }
+
+    /* ── Loading ── */
+    #loading {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid #3d4166;
+      border-top-color: #4ade80;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Map ── */
+    #map {
+      flex: 1;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<div id="sidebar">
+  <h1>🚗 <span>EV Route</span> Optimizer</h1>
+  <p class="subtitle">Jaipur City Centre · Tata Nexon EV</p>
+
+  <hr class="divider"/>
+
+  <div>
+    <label>Source Location</label>
+    <select id="source">
+    <option value="badi_chaupar">Badi Chaupar</option>
+    <option value="hawa_mahal">Hawa Mahal</option>
+    <option value="albert_hall">Albert Hall Museum</option>
+    <option value="sindhi_camp">Sindhi Camp</option>
+    <option value="jaipur_station">Jaipur Railway Station</option>
+    <option value="ajmer_road">Ajmer Road</option>
+    <option value="chandpol_bazar">Chandpol Bazaar</option>
+    </select>
+
+    <select id="destination">
+    <option value="ajmer_road">Ajmer Road</option>
+    <option value="albert_hall">Albert Hall Museum</option>
+    <option value="hawa_mahal">Hawa Mahal</option>
+    <option value="sindhi_camp">Sindhi Camp</option>
+    <option value="jaipur_station">Jaipur Railway Station</option>
+    <option value="badi_chaupar">Badi Chaupar</option>
+    <option value="chandpol_bazar">Chandpol Bazaar</option>
+    </select>
+  </div>
+
+  <div>
+    <div class="soc-display">
+      <label style="margin:0">Battery (SoC)</label>
+      <div class="soc-value" id="soc-display">80%</div>
+    </div>
+    <input type="range" id="soc" min="5" max="100" value="80"
+           oninput="updateSoc(this.value)"/>
+    <div class="soc-bar">
+      <div class="soc-fill" id="soc-fill" style="width:80%"></div>
+    </div>
+  </div>
+
+  <button id="find-btn" onclick="findRoute()">⚡ Find Optimal Route</button>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <span>Computing optimal route...</span>
+  </div>
+
+  <div id="error-box"></div>
+
+  <div id="result-card">
+    <div id="result-type" class="result-type"></div>
+    <div class="stat-row"><span>Travel Time</span><span id="r-time"></span></div>
+    <div class="stat-row"><span>Energy Used</span><span id="r-energy"></span></div>
+    <div class="stat-row"><span>SoC Consumed</span><span id="r-soc"></span></div>
+    <div id="charging-info"></div>
+  </div>
+
+  <hr class="divider"/>
+  <div style="font-size:11px; color:#4b5563; line-height:1.6">
+    🔵 Blue = Direct route<br>
+    🔴 Red = Via charging stop<br>
+    ⚡ Orange pin = Charging station<br>
+    ⚫ Grey dot = Other stations
+  </div>
+</div>
+
+<!-- ── Map ── -->
+<div id="map"></div>
+
+<script>
+  // ── Init Map ────────────────────────────────────────────────────────
+  const map = L.map('map').setView([26.9124, 75.7873], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  let routeLayer    = null;
+  let markerLayers  = [];
+
+  function clearMap() {
+    if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+    markerLayers.forEach(m => map.removeLayer(m));
+    markerLayers = [];
+  }
+
+  // ── SoC Slider ──────────────────────────────────────────────────────
+  function updateSoc(val) {
+    document.getElementById('soc-display').textContent = val + '%';
+    document.getElementById('soc-fill').style.width    = val + '%';
+  }
+
+  // ── Find Route ──────────────────────────────────────────────────────
+  async function findRoute() {
+    const source      = document.getElementById('source').value;
+    const destination = document.getElementById('destination').value;
+    const soc         = parseInt(document.getElementById('soc').value);
+
+    if (source === destination) {
+      showError('Source and destination cannot be the same.');
+      return;
+    }
+
+    setLoading(true);
+    hideError();
+    document.getElementById('result-card').style.display = 'none';
+
+    try {
+      const res  = await fetch('/route', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ source, destination, soc })
+      });
+      const data = await res.json();
+
+      if (data.error) { showError(data.error); return; }
+
+      renderRoute(data);
+      showResult(data);
+
+    } catch (err) {
+      showError('Failed to connect to server. Is it running?');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Render Route on Map ─────────────────────────────────────────────
+  function renderRoute(data) {
+    clearMap();
+
+    const color = data.route_type === 'direct' ? '#3b82f6' : '#ef4444';
+
+    // Route polyline
+    if (data.path_coords.length >= 2) {
+      routeLayer = L.polyline(data.path_coords, {
+        color, weight: 5, opacity: 0.85
+      }).addTo(map);
+      map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
+    }
+
+    // Source marker
+    const srcIcon = L.divIcon({
+      html: `<div style="background:#22c55e;width:16px;height:16px;
+             border-radius:50%;border:3px solid white;
+             box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
+      iconSize: [16, 16], iconAnchor: [8, 8]
+    });
+    const srcMarker = L.marker([data.source.lat, data.source.lon], {icon: srcIcon})
+      .bindPopup(`<b>START</b><br>${data.source.name}<br>SoC: ${document.getElementById('soc').value}%`)
+      .addTo(map);
+    markerLayers.push(srcMarker);
+
+    // Destination marker
+    const dstIcon = L.divIcon({
+      html: `<div style="background:#ef4444;width:16px;height:16px;
+             border-radius:50%;border:3px solid white;
+             box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
+      iconSize: [16, 16], iconAnchor: [8, 8]
+    });
+    const dstMarker = L.marker([data.destination.lat, data.destination.lon], {icon: dstIcon})
+      .bindPopup(`<b>DESTINATION</b><br>${data.destination.name}<br>
+                  Time: ${data.total_time_min} min<br>
+                  Energy: ${data.total_kwh} kWh`)
+      .addTo(map);
+    markerLayers.push(dstMarker);
+
+    // Charging stop markers
+    data.charging_stops.forEach(s => {
+      const icon = L.divIcon({
+        html: `<div style="background:#f59e0b;width:20px;height:20px;
+               border-radius:50%;border:3px solid white;
+               display:flex;align-items:center;justify-content:center;
+               font-size:11px;box-shadow:0 2px 6px rgba(0,0,0,0.4)">⚡</div>`,
+        iconSize: [20, 20], iconAnchor: [10, 10]
+      });
+      const m = L.marker([s.lat, s.lon], {icon})
+        .bindPopup(`<b>⚡ ${s.name}</b><br>Type: ${s.charger_type}<br>Rate: ${s.rate_kw} kW`)
+        .addTo(map);
+      markerLayers.push(m);
+    });
+
+    // All other stations (grey dots)
+    data.all_stations.forEach(s => {
+      const isStop = data.charging_stops.some(cs => cs.name === s.name);
+      if (isStop) return;
+      const m = L.circleMarker([s.lat, s.lon], {
+        radius: 6, color: '#6b7280', fillColor: '#6b7280',
+        fillOpacity: 0.6, weight: 2
+      }).bindPopup(`<b>${s.name}</b><br>${s.charger_type} · ${s.rate_kw} kW`)
+        .addTo(map);
+      markerLayers.push(m);
+    });
+  }
+
+  // ── Show Result Card ────────────────────────────────────────────────
+  function showResult(data) {
+    const card = document.getElementById('result-card');
+    card.style.display = 'flex';
+
+    const typeEl = document.getElementById('result-type');
+    if (data.route_type === 'direct') {
+      typeEl.textContent  = '✅ Direct Route';
+      typeEl.className    = 'result-type type-direct';
+    } else {
+      typeEl.textContent  = '⚡ Via Charging Stop';
+      typeEl.className    = 'result-type type-charging';
+    }
+
+    document.getElementById('r-time').textContent   = data.total_time_min + ' min';
+    document.getElementById('r-energy').textContent = data.total_kwh + ' kWh';
+    document.getElementById('r-soc').textContent    = data.total_soc_used + '%';
+
+    const ci = document.getElementById('charging-info');
+    if (data.charging_stops.length > 0) {
+      const s = data.charging_stops[0];
+      ci.innerHTML = `<div class="charging-stop">
+        <b>⚡ Charging Stop</b><br>
+        ${s.name}<br>
+        ${s.charger_type} · ${s.rate_kw} kW
+      </div>`;
+    } else {
+      ci.innerHTML = '';
+    }
+  }
+
+  function setLoading(on) {
+    document.getElementById('loading').style.display  = on ? 'flex' : 'none';
+    document.getElementById('find-btn').disabled      = on;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-box');
+    el.textContent    = '❌ ' + msg;
+    el.style.display  = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('error-box').style.display = 'none';
+  }
+</script>
+</body>
+</html> 
