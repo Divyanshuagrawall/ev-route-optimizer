@@ -6,3 +6,6 @@ output/
 *.pyo
 .env
 .DS_Store
+data/jaipur_graph.pkl
+data/speed_model.pkl
+data/training_data.csv
